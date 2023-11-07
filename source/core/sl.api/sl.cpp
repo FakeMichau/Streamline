@@ -65,6 +65,17 @@ inline sl::Result slValidateState()
 
 inline sl::Result slValidateFeatureContext(sl::Feature f, const sl::plugin_manager::FeatureContext*& ctx)
 {
+    ctx = plugin_manager::getInterface()->getFeatureContext(f);
+    if (!ctx)
+    {
+        // SL_LOG_ERROR("'%s' is missing.", getFeatureAsStr(f));
+        return Result::eErrorFeatureMissing;
+    }
+    if (!ctx->supportedAdapters)
+    {
+        SL_LOG_ERROR("'%s' is not supported.", getFeatureAsStr(f));
+        return Result::eErrorFeatureNotSupported;
+    }
     return Result::eOk;
 }
 
