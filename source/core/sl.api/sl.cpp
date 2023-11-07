@@ -136,7 +136,6 @@ sl::Result slInit(const Preferences &pref, uint64_t sdkVersion)
             bool useDXGIProxy = pref.flags & PreferenceFlags::eUseDXGIFactoryProxy;
             sl::interposer::getInterface()->setUseDXGIProxy(useDXGIProxy);
 
-#ifndef SL_PRODUCTION
             // Allow overrides via 'sl.interposer.json'
             if (!sl::interposer::getInterface()->getConfigPath().empty())
             {
@@ -150,19 +149,8 @@ sl::Result slInit(const Preferences &pref, uint64_t sdkVersion)
                 log->setLogLevel((LogLevel)level);
                 log->setLogMessageDelay(config.logMessageDelayMs);
                 SL_LOG_HINT("Overriding interposer settings with values from %S\\sl.interposer.json", sl::interposer::getInterface()->getConfigPath().c_str());
-                if (config.waitForDebugger)
-                {
-                    SL_LOG_INFO("Waiting for debugger to attach ...");
-#ifdef SL_WINDOWS
-                    while (!IsDebuggerPresent())
-                    {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                    }
-#endif
-                }
             }
-#endif
-
+                
             // Check to see if RenderDoc is present and notify the user
 #ifdef SL_WINDOWS
             HMODULE renderDocMod = GetModuleHandleA("renderdoc.dll");
@@ -427,14 +415,12 @@ Result slGetNativeInterface(void* proxyInterface, void** baseInterface)
         return Result::eErrorInvalidParameter;
     }
 
-#ifndef SL_PRODUCTION
     // For research and debugging purposes we can force proxies in non-production builds
     if (sl::interposer::getInterface()->getConfig().forceProxies)
     {
         *baseInterface = proxyInterface;
         return Result::eOk;
     }
-#endif
 
     // This must be a IUnknown interface
     auto unknown = static_cast<IUnknown*>(proxyInterface);
@@ -613,115 +599,7 @@ Result slUpgradeInterface(void** baseInterface)
 
 Result slIsFeatureSupported(sl::Feature feature, const sl::AdapterInfo& adapterInfo)
 {
-    //! IMPORTANT:
-    //! 
-    //! As explained in sl_struct.h any new elements must be placed at the end
-    //! of each structure and version must be increased or new elements can be
-    //! added in a new structure which is then chained. This assert ensures
-    //! that new element(s) are NOT added in the middle of a structure.
-    static_assert(offsetof(sl::AdapterInfo, vkPhysicalDevice) == 48, "new elements can only be added at the end of each structure");
-
-    auto isSupported = [](sl::Feature feature, const sl::AdapterInfo& adapterInfo)->Result
-    {
-        //! NOTE: 
-        //! 
-        //! Removed all logging to avoid confusion when feature is not loaded purposely.
-        //! Also since we return a specific error code no real need for extra logging.
-        //! 
-        SL_CHECK(slValidateState());
-
-        const char* jsonConfig{};
-        if (!plugin_manager::getInterface()->getExternalFeatureConfig(feature, &jsonConfig))
-        {
-            return Result::eErrorFeatureMissing;
-        }
-
-        // Any JSON parser can be used here
-        std::istringstream stream(jsonConfig);
-        nlohmann::json cfg;
-        stream >> cfg;
-
-        bool osSupported = cfg["os"]["supported"];
-        bool driverSupported = cfg["driver"]["supported"];
-
-        if (cfg.contains("hws"))
-        {
-            bool required = cfg["hws"]["required"];
-            bool detected = cfg["hws"]["detected"];
-            if (required && !detected)
-            {
-                SL_LOG_ERROR("Feature '%s' requires GPU hardware scheduling to be enabled in the OS", getFeatureAsStr(feature));
-                return Result::eErrorOSDisabledHWS;
-            }
-        }
-
-        // Handle errors at the end so we can fill the structure with all the information needed
-        if (!osSupported)
-        {
-            return Result::eErrorOSOutOfDate;
-        }
-
-        if (!driverSupported)
-        {
-            return Result::eErrorDriverOutOfDate;
-        }
-
-        FeatureRequirements featureReqs;
-        slGetFeatureRequirements(feature, featureReqs);
-
-        auto renderAPI = plugin_manager::getInterface()->getPreferences().renderAPI;
-        switch (renderAPI)
-        {
-            case RenderAPI::eD3D11:
-                if (!(featureReqs.flags & FeatureRequirementFlags::eD3D11Supported))
-                {
-                    SL_LOG_WARN("D3D11 not supported for this plugin");
-                    return Result::eErrorMissingOrInvalidAPI;
-                }
-                break;
-            case RenderAPI::eD3D12:
-                if (!(featureReqs.flags & FeatureRequirementFlags::eD3D12Supported))
-                {
-                    SL_LOG_WARN("D3D12 not supported for this plugin");
-                    return Result::eErrorMissingOrInvalidAPI;
-                }
-                break;
-            case RenderAPI::eVulkan:
-                if (!(featureReqs.flags & FeatureRequirementFlags::eVulkanSupported))
-                {
-                    SL_LOG_WARN("Vulkan not supported for this plugin");
-                    return Result::eErrorMissingOrInvalidAPI;
-                }
-                break;
-            default:
-                SL_LOG_ERROR("Unexpected renderAPI value passed to slInit!");
-                return Result::eErrorInvalidParameter;
-        }
-
-        // Check if the feature is supported on any available adapters
-        bool featureSupported = cfg["feature"]["supported"];
-        if (!featureSupported)
-        {
-            return Result::eErrorNoSupportedAdapterFound;
-        }
-
-        auto ctx = plugin_manager::getInterface()->getFeatureContext(feature);
-        if (!ctx)
-        {
-            return Result::eErrorFeatureMissing;
-        }
-
-        // Not having 'isSupported' function indicates that plugin is supported on all adapters by design.
-        // 
-        // Also if adapter info is not provided there is nothing further to check
-        if (!ctx->isSupported || !adapterInfo.deviceLUID) return Result::eOk;
-
-        return ctx->isSupported(adapterInfo);
-    };
-
-    SL_EXCEPTION_HANDLE_START;
-    return isSupported(feature, adapterInfo);
-    SL_EXCEPTION_HANDLE_END_RETURN(Result::eErrorExceptionHandler);
+    return Result::eOk;
 }
 
 Result slGetFeatureVersion(sl::Feature feature, sl::FeatureVersion& version)
