@@ -895,7 +895,7 @@ Result PluginManager::loadPlugins()
             auto plugin = *it;
             
             // If we are not supported then we just unload ourselves
-            if (!plugin->context.supportedAdapters)
+            if (false)
             {
                 SL_LOG_WARN("Ignoring plugin '%s' since it is not supported on this platform", plugin->name.c_str());
                 pluginsToUnload.push_back(plugin);
