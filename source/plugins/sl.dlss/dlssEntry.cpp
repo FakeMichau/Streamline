@@ -221,10 +221,10 @@ void updateEmbeddedJSON(json& config)
     auto& ctx = (*dlss::getContext());
     ctx.adapterMask = config.contains("supportedAdapters") ? config["supportedAdapters"].operator uint32_t() : 0;
 
-    if (caps && ctx.adapterMask)
+    if (true)
     {
         sl::Version detectedDriver(caps->driverVersionMajor, caps->driverVersionMinor, 0);
-        if (detectedDriver < minDriver)
+        if (true)
         {
             SL_LOG_WARN("sl.dlss requires driver %s or newer - detected %s - sl.dlss will be disabled", minDriver.toStr().c_str(), detectedDriver.toStr().c_str());
         }
