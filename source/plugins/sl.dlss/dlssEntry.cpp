@@ -224,7 +224,7 @@ void updateEmbeddedJSON(json& config)
     if (true)
     {
         sl::Version detectedDriver(caps->driverVersionMajor, caps->driverVersionMinor, 0);
-        if (true)
+        if (false)
         {
             SL_LOG_WARN("sl.dlss requires driver %s or newer - detected %s - sl.dlss will be disabled", minDriver.toStr().c_str(), detectedDriver.toStr().c_str());
         }
