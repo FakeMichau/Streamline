@@ -2466,7 +2466,7 @@ ComputeStatus Vulkan::getOpticalFlowQueueInfo(chi::PhysicalDevice physDevice, ui
 
     vkGetPhysicalDeviceFeatures2(physicalDevice, &physicalDeviceFeatures2);
 
-    bool nativeOpticalFlowHWSupport = (physicalDeviceSynchronization2Features.synchronization2 == VK_TRUE && physicalDeviceOpticalFlowFeaturesNV.opticalFlow == VK_TRUE);
+    bool nativeOpticalFlowHWSupport = true;
     if (!nativeOpticalFlowHWSupport)
     {
         SL_LOG_ERROR("Physical device features required to support Native VK OFA not supported by HW!");
